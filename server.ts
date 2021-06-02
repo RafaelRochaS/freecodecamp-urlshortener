@@ -6,10 +6,10 @@ const PORT = process.env['PORT'] || 3000;
 const HOST = process.env['HOST'] || '0.0.0.0';
 
 const cors = corsMiddleware({
-  origins: ["*"],
+  origins: ['*'],
 });
 
-let server = createServer();
+const server = createServer();
 
 server.pre(cors.preflight);
 server.use(cors.actual);
@@ -25,14 +25,16 @@ server.get('/api/shorturl/:url', async (req: Request, res: Response) => {
 
 server.post('/api/shorturl/', async (req: Request, res: Response) => {
   if (req.body['url'] == null) {
-    return res.json({ error: 'no url informed' });
+    console.log('entrou');
+    res.json({ error: 'no url informed' });
   }
   dns.lookup(req.body['url'], (err, addresses) => {
     if (err != null) {
-      return res.json({ error: 'invalid url' })
+      res.json({ error: 'invalid url' });
     }
+    console.log(addresses);
   });
-  return res.json({ param: req.body });
+  res.json({ param: req.body });
 });
 
 server.listen(PORT, HOST, () => {
