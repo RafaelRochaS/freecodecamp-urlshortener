@@ -9,11 +9,38 @@ const cors = corsMiddleware({
   origins: ['*'],
 });
 
+function checkUrlMiddleware(req: Request, res: Response, next: Next): void {
+  if (req.body['url'] === null || req.body['url'] === undefined) {
+    res.status(400);
+    return res.json({ error: 'no url informed' });
+  }
+  return next();
+}
+
+function validateUrlMiddleware(req: Request, res: Response, next: Next): void {
+  let { url } = req.body;
+  if (url.startsWith('https')) {
+    url = url.substring(8);
+  } else if (url.startsWith('http')) {
+    url = url.substring(7);
+  }
+  dns.lookup(url, (err, addresses) => {
+    console.log(addresses);
+    if (err != null) {
+      res.status(400);
+      return res.json({ error: 'invalid url' });
+    }
+    return next();
+  });
+}
+
 const server = createServer();
 
 server.pre(cors.preflight);
 server.use(cors.actual);
 server.use(plugins.bodyParser({}));
+server.use(checkUrlMiddleware);
+server.use(validateUrlMiddleware);
 
 server.get('/', async (req: Request, res: Response) => {
   res.json({ status: 'online' });
@@ -24,16 +51,6 @@ server.get('/api/shorturl/:url', async (req: Request, res: Response) => {
 });
 
 server.post('/api/shorturl/', async (req: Request, res: Response) => {
-  if (req.body['url'] == null) {
-    console.log('entrou');
-    res.json({ error: 'no url informed' });
-  }
-  dns.lookup(req.body['url'], (err, addresses) => {
-    if (err != null) {
-      res.json({ error: 'invalid url' });
-    }
-    console.log(addresses);
-  });
   res.json({ param: req.body });
 });
 
