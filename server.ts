@@ -15,7 +15,7 @@ const cors = corsMiddleware({
   origins: ['*'],
 });
 
-const urls = new Map();
+const urls = new Map<number, string>();
 
 let index = 0;
 
@@ -43,9 +43,9 @@ function validateUrlMiddleware(req: Request, res: Response, next: Next): void {
         res.status(400);
         return res.json({ error: 'invalid url' });
       }
-      return next();
     });
   }
+  return next();
 }
 
 const server = createServer();
@@ -53,16 +53,17 @@ const server = createServer();
 server.pre(cors.preflight);
 server.use(cors.actual);
 server.use(plugins.bodyParser({}));
-server.use(checkUrlMiddleware);
-server.use(validateUrlMiddleware);
 
 server.get('/', async (req: Request, res: Response) => {
   res.json({ status: 'online' });
 });
 
 server.get('/api/shorturl/:url', async (req: Request, res: Response) => {
-  res.json({ status: 'ok' });
+  res.json({ original: urls.get(parseInt(req.params.url, 10)) });
 });
+
+server.use(checkUrlMiddleware);
+server.use(validateUrlMiddleware);
 
 server.post('/api/shorturl/', async (req: Request, res: Response) => {
   index += 1;
