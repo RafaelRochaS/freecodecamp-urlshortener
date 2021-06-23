@@ -1,3 +1,4 @@
+/* eslint-disable no-prototype-builtins */
 import {
   Next,
   Request,
@@ -23,29 +24,10 @@ function checkUrlMiddleware(req: Request, res: Response, next: Next): void {
   if (req.method === 'POST') {
     if (req.body['url'] === null || req.body['url'] === undefined) {
       res.status(400);
-      return res.json({ error: 'no url informed' });
+      res.json({ error: 'no url informed' });
     }
   }
-  return next();
-}
-
-function validateUrlMiddleware(req: Request, res: Response, next: Next): void {
-  if (req.method === 'POST') {
-    let { url } = req.body;
-    if (url.startsWith('https')) {
-      url = url.substring(8);
-    } else if (url.startsWith('http')) {
-      url = url.substring(7);
-    }
-    dns.lookup(url, (err, addresses) => {
-      console.log(addresses);
-      if (err != null) {
-        res.status(400);
-        return res.json({ error: 'invalid url' });
-      }
-    });
-  }
-  return next();
+  next();
 }
 
 const server = createServer();
@@ -58,19 +40,40 @@ server.get('/', async (req: Request, res: Response) => {
   res.json({ status: 'online' });
 });
 
-server.get('/api/shorturl/:url', async (req: Request, res: Response) => {
-  res.json({ original: urls.get(parseInt(req.params.url, 10)) });
+server.get('/api/shorturl/:url', async (req: Request, res: Response, next: Next) => {
+  const url = urls.get(parseInt(req.params.url, 10));
+  if (url != null) {
+    res.redirect(301, url, next);
+  } else {
+    res.json({ error: 'url not found' });
+  }
 });
 
 server.use(checkUrlMiddleware);
-server.use(validateUrlMiddleware);
 
 server.post('/api/shorturl/', async (req: Request, res: Response) => {
-  index += 1;
-  urls.set(index, req.body['url']);
-  console.log(urls);
-  res.status(201);
-  res.json({ original_url: req.body['url'], short_url: index });
+  let { url } = req.body;
+  let valid = true;
+  if (url.startsWith('https')) {
+    url = url.substring(8);
+  } else if (url.startsWith('http')) {
+    url = url.substring(7);
+  }
+  dns.lookup(url, (err, addresses) => {
+    console.log(addresses);
+    if (addresses === null || addresses === undefined) {
+      valid = false;
+    }
+    if (!valid) {
+      res.status(400);
+      return res.json({ error: 'invalid url' });
+    }
+    index += 1;
+    urls.set(index, req.body['url']);
+    console.log(urls);
+    res.status(201);
+    return res.json({ original_url: req.body['url'], short_url: index });
+  });
 });
 
 server.listen(PORT, HOST, () => {
