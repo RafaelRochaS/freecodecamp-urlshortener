@@ -12,9 +12,9 @@ import dns from 'dns';
 const PORT = process.env['PORT'] || 3000;
 const HOST = process.env['HOST'] || '0.0.0.0';
 
-const cors = corsMiddleware({
-  origins: ['https://freecodecamp.org'],
-});
+// const cors = corsMiddleware({
+//   origins: ['https://freecodecamp.org'],
+// });
 
 const urls = new Map<number, string>();
 
@@ -32,8 +32,15 @@ function checkUrlMiddleware(req: Request, res: Response, next: Next): void {
 
 const server = createServer();
 
-server.pre(cors.preflight);
-server.use(cors.actual);
+// server.pre(cors.preflight);
+// server.use(cors.actual);
+server.use(
+  (req, res, next) => {
+    res.header('Access-Control-Allow-Origin', '*');
+    res.header('Access-Control-Allow-Headers', 'X-Requested-With');
+    return next();
+  },
+);
 server.use(plugins.bodyParser({}));
 
 server.get('/', async (req: Request, res: Response) => {
